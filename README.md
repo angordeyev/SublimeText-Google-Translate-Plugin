@@ -3,7 +3,7 @@ Sublime Text Google Translate Plugin
 
 For SublimeText 2 & 3, support proxy `PROXY_TYPE_SOCKS5` `PROXY_TYPE_SOCKS4` `PROXY_TYPE_HTTP`
 
-**Version:** 2.1.0
+**Version:** 2.1.1
 
 ![Sublime Text Google Translate Plugin](https://raw.githubusercontent.com/MTimer/SublimeText-Google-Translate-Plugin/master/GoogleTranslate.gif)
 ------------------
