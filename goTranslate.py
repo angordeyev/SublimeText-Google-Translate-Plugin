@@ -7,6 +7,7 @@ import sublime_plugin
 import json
 import re
 import time
+import mdpopups
 from pprint import pprint
 if sublime.version() < '3':
     from core.translate import *
@@ -67,22 +68,34 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                     whole_line = True
 
                 if selection:
-                    print('selection(' + selection + ')' )
                     largo = len(selection)
-                    # DEBUG print('')
-                    print('largo long(' + str(largo) + ')' )
+                    print('line(' + str(cur_line + 1) + ') length(' + str(largo) + ') selection(' + selection + ')' )
 
                     if largo > 256:
                         print('')
-                        print('ERR:' + str(cur_line + 1) + ' line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
+                        message = 'ERR:' + str(cur_line + 1) + ' line too long to translate and it will fail, consider spliting it, shorting it, making two or more.'
+                        print(message)
                         print('')
                         sublime.status_message(u'ERR:' + str(cur_line + 1 ) + ' line too Long (' + selection + ')')
+                        self.initialize_ProgressBar( v, "Translate", "Error", message + " \n line" + str(cur_line + 1) + ' length(' + str(largo) + ') selection(' + selection + ')')
                         keep_moving = False
                         return
 
                     selection = selection.encode('utf-8')
 
-                    translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
+                    try:
+                        translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
+                    except:
+                        # REF: https://github.com/Enteleform/-SCRIPTS-/blob/master/SublimeText/%5BMisc%5D/%5BProof%20Of%20Concept%5D%20Progress%20Bar/ProgressBarDemo/ProgressBarDemo.py
+                        print('')
+                        message = 'ERR:' + str(cur_line + 1) + ' translation service failed.'
+                        print(message)
+                        print('')
+                        sublime.status_message(u'' + message)
+                        self.initialize_ProgressBar( v, "Translate", "Error", message)
+                        keep_moving = False
+                        return
+
 
                     if not target_language:
                         v.run_command("go_translate_to")
@@ -161,6 +174,43 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
     # the file.
     def line_at(self, point):
         return self.view.rowcol(point)[0]
+
+    def initialize_ProgressBar( self, view , title = "PROGRESS:", label = "COMPLETE!", content = ""):
+        # REF: https://github.com/Enteleform/-SCRIPTS-/blob/master/SublimeText/%5BMisc%5D/%5BProof%20Of%20Concept%5D%20Progress%20Bar/ProgressBarDemo/ProgressBarDemo.py
+        #▒▒▒  Text  ▒▒▒#
+        self.popUp_Label_InProgress = title
+        self.popUp_Label_Complete   = label
+
+        #▒▒▒  Progress Tracking  ▒▒▒#
+        self.maxPercent      = 100
+        self.updateFrequency = 50 # In Milliseconds
+
+        #▒▒▒  Dimensions  ▒▒▒#
+        self.popupWidth         = 500
+        self.popupMaxHeight     = 500
+        self.progressBar_Height = 21
+
+        #▒▒▒  Colors  ▒▒▒#
+        self.progressBar_Incomplete_Color = "#0B121A"
+        self.progressBar_Complete_Color   = "#57BB80"
+        self.progressBar_Progress_Color   = "#5A91BC"
+        self.progressBar_BorderColor      = "#000000"
+
+        self.popupCSS = sublime.load_resource( sublime.find_resources( "ProgressBarDemo_ProgressBar.css" )[ 0 ] )
+        self.progressBar_Width = int( float( self.popupWidth * 0.8 ) )
+        self.progressPercent   = 100
+
+        mdpopups.show_popup(
+            view,               # view
+            content,            # content
+            True,               # markdown
+            self.popupCSS,      # css
+            0,                  # flags
+            -1,                 # location
+            self.popupWidth,    # width
+            self.popupMaxHeight # height
+        )
+
 
 class GoTranslateInfoCommand(sublime_plugin.TextCommand):
     def run(self, edit):
