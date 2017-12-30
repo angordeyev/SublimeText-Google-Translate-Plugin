@@ -12,14 +12,7 @@ if sublime.version() < '3':
 else:
     from .core.translate import *
 
-# RE: https://stackoverflow.com/questions/44578315/making-a-sublime-text-3-macro-to-evaluate-a-line-and-then-move-the-cursor-to-the
-# A regex that matches a line that's blank or contains a comment.
-# Adjust as needed
-_r_blank = re.compile("^\s*(#.*)?$")
-
 settings = sublime.load_settings("goTranslate.sublime-settings")
-
-
 
 class GoTranslateCommand(sublime_plugin.TextCommand):
 
@@ -39,13 +32,20 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
         target_type = settings.get("target_type")
         effectuate_keep_moving = settings.get("keep_moving_down")
 
+        v = self.view
+
         # Get the count of lines in the buffer so we know when to stop
-        last_line = self.line_at(self.view.size())
+        last_line = self.line_at(v.size())
         keep_moving = True
+        # RE: https://stackoverflow.com/questions/44578315/making-a-sublime-text-3-macro-to-evaluate-a-line-and-then-move-the-cursor-to-the
+        # A regex that matches a line that's blank or contains a comment.
+        # Adjust as needed
+        _r_blank = re.compile("^\s*(#.*)?$")
+
         while keep_moving:
 
-            for region in self.view.sel():
-                v = self.view
+            for region in v.sel():
+
                 whole_line = False
                 if not region.empty():
                     selection = v.substr(region)
@@ -74,7 +74,7 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                     translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
 
                     if not target_language:
-                        self.view.run_command("go_translate_to")
+                        v.run_command("go_translate_to")
                         keep_moving = False
                         return
                     else:
@@ -108,21 +108,26 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
 
             if keep_moving:
                 # Move to the next line
-                self.view.run_command("move", {"by": "lines", "forward": True})
+                v.run_command("move", {"by": "lines", "forward": True})
                 print('moved down.')
 
                 # Get the current cursor position in the file
-                caret = self.view.sel()[0].begin()
+                caret = v.sel()[0].begin()
 
                 # Get the new current line number
                 cur_line = self.line_at(caret)
 
                 # Get the contents of the current line
-                content = self.view.substr(self.view.line(caret))
+                # content = v.substr(v.line(caret))
+                # selection = v.substr(v.line(v.sel()[0]))
+                # largo = len(selection.strip())
 
                 # If the current line is the last line, or the contents of
                 # the current line does not match the regex, break out now.
-                if cur_line == last_line or not _r_blank.match(content):
+                if cur_line == last_line: #or largo == 0:  # not _r_blank.match(selection):
+                    print('cur_line(' + str(cur_line) + ') == last_line(' + str(last_line) + ')' )
+                    #print('selection.len(' + str(largo) + ')')
+                    print('exiting here.')
                     keep_moving = False
 
 
