@@ -37,8 +37,15 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
         v = self.view
         window = v.window()
 
+        # Get the current cursor position in the file
+        caret = v.sel()[0].begin()
+
+        # Get the new current line number
+        cur_line = self.line_at(caret)
+
         # Get the count of lines in the buffer so we know when to stop
         last_line = self.line_at(v.size())
+
         keep_moving = True
         # RE: https://stackoverflow.com/questions/44578315/making-a-sublime-text-3-macro-to-evaluate-a-line-and-then-move-the-cursor-to-the
         # A regex that matches a line that's blank or contains a comment.
@@ -67,9 +74,9 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
 
                     if largo > 256:
                         print('')
-                        print('ERR: line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
+                        print('ERR:' + str(cur_line + 1) + ' line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
                         print('')
-                        sublime.status_message(u'ERR: Too Long (' + selection + ')')
+                        sublime.status_message(u'ERR:' + str(cur_line + 1 ) + ' line too Long (' + selection + ')')
                         keep_moving = False
                         return
 
