@@ -6,6 +6,7 @@ import sublime
 import sublime_plugin
 import json
 import re
+import time
 from pprint import pprint
 if sublime.version() < '3':
     from core.translate import *
@@ -17,6 +18,7 @@ settings = sublime.load_settings("goTranslate.sublime-settings")
 class GoTranslateCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, proxy_enable = settings.get("proxy_enable"), proxy_type = settings.get("proxy_type"), proxy_host = settings.get("proxy_host"), proxy_port = settings.get("proxy_port"), source_language = settings.get("source_language"), target_language = settings.get("target_language")):
+
         if not source_language:
             source_language = settings.get("source_language")
         if not target_language:
@@ -33,6 +35,7 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
         effectuate_keep_moving = settings.get("keep_moving_down")
 
         v = self.view
+        window = v.window()
 
         # Get the count of lines in the buffer so we know when to stop
         last_line = self.line_at(v.size())
@@ -59,13 +62,14 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                 if selection:
                     print('selection(' + selection + ')' )
                     largo = len(selection)
-                    print('')
+                    # DEBUG print('')
                     print('largo long(' + str(largo) + ')' )
 
                     if largo > 256:
                         print('')
                         print('ERR: line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
                         print('')
+                        sublime.status_message(u'ERR: Too Long (' + selection + ')')
                         keep_moving = False
                         return
 
@@ -79,29 +83,32 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                         return
                     else:
                         result = translate.translate(selection, target_type)
+                        time.sleep(0.15)
 
-                    print('edit')
-                    pprint(edit)
+                    # DEBUG print('edit')
+                    # DEBUG pprint(edit)
 
-                    print('coordinates')
-                    pprint(coordinates)
+                    # DEBUG print('coordinates')
+                    # DEBUG pprint(coordinates)
 
-                    print('result')
-                    pprint(result)
+                    # DEBUG print('result')
+                    # DEBUG pprint(result)
 
                     if not whole_line:
                         v.replace(edit, region, result)
                     else:
                         v.replace(edit, coordinates, result)
 
+                    window.focus_view(v)
                     if not source_language:
                         detected = 'Auto'
                     else:
                         detected = source_language
                     sublime.status_message(u'Done! (translate '+detected+' --> '+target_language+')')
                 else:
-                    print('nothing to translate')
-                    print('selection(' + selection + ')' )
+                    sublime.status_message(u'Nothing to translate!')
+                    print('Nothing to translate!')
+                    # DEBUG print('selection(' + selection + ')' )
 
             if effectuate_keep_moving == 'no':
                 keep_moving = False
@@ -109,13 +116,19 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
             if keep_moving:
                 # Move to the next line
                 v.run_command("move", {"by": "lines", "forward": True})
+                time.sleep(0.15)
+                sublime.status_message(u'moved down.')
                 print('moved down.')
+
 
                 # Get the current cursor position in the file
                 caret = v.sel()[0].begin()
 
                 # Get the new current line number
                 cur_line = self.line_at(caret)
+
+                percent = (cur_line * 100) / last_line
+                sublime.status_message('%03.2f %%' % percent)
 
                 # Get the contents of the current line
                 # content = v.substr(v.line(caret))
