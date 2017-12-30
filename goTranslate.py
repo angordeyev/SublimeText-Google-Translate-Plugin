@@ -5,13 +5,21 @@
 import sublime
 import sublime_plugin
 import json
+import re
 from pprint import pprint
 if sublime.version() < '3':
     from core.translate import *
 else:
     from .core.translate import *
 
+# RE: https://stackoverflow.com/questions/44578315/making-a-sublime-text-3-macro-to-evaluate-a-line-and-then-move-the-cursor-to-the
+# A regex that matches a line that's blank or contains a comment.
+# Adjust as needed
+_r_blank = re.compile("^\s*(#.*)?$")
+
 settings = sublime.load_settings("goTranslate.sublime-settings")
+
+
 
 class GoTranslateCommand(sublime_plugin.TextCommand):
 
@@ -29,68 +37,105 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
         if not proxy_port:
             proxy_port = settings.get("proxy_port")
         target_type = settings.get("target_type")
+        effectuate_keep_moving = settings.get("keep_moving_down")
 
-        for region in self.view.sel():
-            v = self.view
-            whole_line = False
-            if not region.empty():
-                selection = v.substr(region)
-                coordinates = v.sel()
-            else:
-                selection = v.substr(v.line(v.sel()[0]))
-                coordinates = v.line(v.sel()[0])
-                whole_line = True
+        # Get the count of lines in the buffer so we know when to stop
+        last_line = self.line_at(self.view.size())
+        keep_moving = True
+        while keep_moving:
 
-            if selection:
-                print('selection(' + selection + ')' )
-                largo = len(selection)
-                print('')
-                print('largo long(' + str(largo) + ')' )
+            for region in self.view.sel():
+                v = self.view
+                whole_line = False
+                if not region.empty():
+                    selection = v.substr(region)
+                    coordinates = v.sel()
+                    keep_moving = False
+                else:
+                    selection = v.substr(v.line(v.sel()[0]))
+                    coordinates = v.line(v.sel()[0])
+                    whole_line = True
 
-                if largo > 256:
+                if selection:
+                    print('selection(' + selection + ')' )
+                    largo = len(selection)
                     print('')
-                    print('ERR: line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
-                    print('')
-                    return
+                    print('largo long(' + str(largo) + ')' )
 
-                selection = selection.encode('utf-8')
+                    if largo > 256:
+                        print('')
+                        print('ERR: line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
+                        print('')
+                        keep_moving = False
+                        return
 
-                translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
+                    selection = selection.encode('utf-8')
 
-                if not target_language:
-                    self.view.run_command("go_translate_to")
-                    return
+                    translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
+
+                    if not target_language:
+                        self.view.run_command("go_translate_to")
+                        keep_moving = False
+                        return
+                    else:
+                        result = translate.translate(selection, target_type)
+
+                    print('edit')
+                    pprint(edit)
+
+                    print('coordinates')
+                    pprint(coordinates)
+
+                    print('result')
+                    pprint(result)
+
+                    if not whole_line:
+                        v.replace(edit, region, result)
+                    else:
+                        v.replace(edit, coordinates, result)
+
+                    if not source_language:
+                        detected = 'Auto'
+                    else:
+                        detected = source_language
+                    sublime.status_message(u'Done! (translate '+detected+' --> '+target_language+')')
                 else:
-                    result = translate.translate(selection, target_type)
+                    print('nothing to translate')
+                    print('selection(' + selection + ')' )
 
-                print('edit')
-                pprint(edit)
+            if effectuate_keep_moving == 'no':
+                keep_moving = False
 
-                print('coordinates')
-                pprint(coordinates)
+            if keep_moving:
+                # Move to the next line
+                self.view.run_command("move", {"by": "lines", "forward": True})
+                print('moved down.')
 
-                print('result')
-                pprint(result)
+                # Get the current cursor position in the file
+                caret = self.view.sel()[0].begin()
 
-                if not whole_line:
-                    v.replace(edit, region, result)
-                else:
-                    v.replace(edit, coordinates, result)
+                # Get the new current line number
+                cur_line = self.line_at(caret)
 
-                if not source_language:
-                    detected = 'Auto'
-                else:
-                    detected = source_language
-                sublime.status_message(u'Done! (translate '+detected+' --> '+target_language+')')
-            else:
-                print('nothing to translate')
-                print('selection(' + selection + ')' )
+                # Get the contents of the current line
+                content = self.view.substr(self.view.line(caret))
+
+                # If the current line is the last line, or the contents of
+                # the current line does not match the regex, break out now.
+                if cur_line == last_line or not _r_blank.match(content):
+                    keep_moving = False
+
 
     def is_visible(self):
         for region in self.view.sel():
             if not region.empty():
                 return True
         return False
+
+    # Convert a 0 based offset into the file into a 0 based line in
+    # the file.
+    def line_at(self, point):
+        return self.view.rowcol(point)[0]
 
 class GoTranslateInfoCommand(sublime_plugin.TextCommand):
     def run(self, edit):
