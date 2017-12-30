@@ -77,7 +77,7 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                         print(message)
                         print('')
                         sublime.status_message(u'ERR:' + str(cur_line + 1 ) + ' line too Long (' + selection + ')')
-                        self.initialize_ProgressBar( v, "Translate", "Error", message + " \n line" + str(cur_line + 1) + ' length(' + str(largo) + ') selection(' + selection + ')')
+                        self.initialize_ProgressBar( v, "Translate", "Error", message + " \n line(" + str(cur_line + 1) + ') length(' + str(largo) + ') selection(' + selection + ')')
                         keep_moving = False
                         return
 
