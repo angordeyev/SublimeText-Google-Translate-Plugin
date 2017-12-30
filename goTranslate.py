@@ -5,7 +5,7 @@
 import sublime
 import sublime_plugin
 import json
-
+from pprint import pprint
 if sublime.version() < '3':
     from core.translate import *
 else:
@@ -31,10 +31,30 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
         target_type = settings.get("target_type")
 
         for region in self.view.sel():
+            v = self.view
+            whole_line = False
             if not region.empty():
+                selection = v.substr(region)
+                coordinates = v.sel()
+            else:
+                selection = v.substr(v.line(v.sel()[0]))
+                coordinates = v.line(v.sel()[0])
+                whole_line = True
 
-                v = self.view
-                selection = v.substr(region).encode('utf-8')
+            if selection:
+                print('selection(' + selection + ')' )
+                largo = len(selection)
+                print('')
+                print('largo long(' + str(largo) + ')' )
+
+                if largo > 256:
+                    print('')
+                    print('ERR: line too long to translate and it will fail, consider spliting it, shorting it, making two or more.')
+                    print('')
+                    return
+
+                selection = selection.encode('utf-8')
+
                 translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
 
                 if not target_language:
@@ -43,13 +63,28 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
                 else:
                     result = translate.translate(selection, target_type)
 
-                v.replace(edit, region, result)
+                print('edit')
+                pprint(edit)
+
+                print('coordinates')
+                pprint(coordinates)
+
+                print('result')
+                pprint(result)
+
+                if not whole_line:
+                    v.replace(edit, region, result)
+                else:
+                    v.replace(edit, coordinates, result)
+
                 if not source_language:
                     detected = 'Auto'
                 else:
                     detected = source_language
                 sublime.status_message(u'Done! (translate '+detected+' --> '+target_language+')')
-
+            else:
+                print('nothing to translate')
+                print('selection(' + selection + ')' )
 
     def is_visible(self):
         for region in self.view.sel():
