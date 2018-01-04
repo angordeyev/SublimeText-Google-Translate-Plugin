@@ -83,28 +83,26 @@ class GoTranslateCommand(sublime_plugin.TextCommand):
 
                     selection = selection.encode('utf-8')
 
-                    try:
-                        translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
-                    except:
-                        # REF: https://github.com/Enteleform/-SCRIPTS-/blob/master/SublimeText/%5BMisc%5D/%5BProof%20Of%20Concept%5D%20Progress%20Bar/ProgressBarDemo/ProgressBarDemo.py
-                        print('')
-                        message = 'ERR:' + str(cur_line + 1) + ' translation service failed.'
-                        print(message)
-                        print('')
-                        sublime.status_message(u'' + message)
-                        self.initialize_ProgressBar( v, "Translate", "Error", message)
-                        keep_moving = False
-                        return
-
+                    translate = GoogleTranslate(proxy_enable, proxy_type, proxy_host, proxy_port, source_language, target_language)
 
                     if not target_language:
                         v.run_command("go_translate_to")
                         keep_moving = False
                         return
                     else:
-                        result = translate.translate(selection, target_type)
-                        time.sleep(0.15)
-
+                        try:
+                            result = translate.translate(selection, target_type)
+                            time.sleep(0.15)
+                        except:
+                            # REF: https://github.com/Enteleform/-SCRIPTS-/blob/master/SublimeText/%5BMisc%5D/%5BProof%20Of%20Concept%5D%20Progress%20Bar/ProgressBarDemo/ProgressBarDemo.py
+                            print('')
+                            message = 'ERR:' + str(cur_line + 1) + ' translation service failed.'
+                            print(message)
+                            print('')
+                            sublime.status_message(u'' + message)
+                            self.initialize_ProgressBar( v, "Translate", "Error", message)
+                            keep_moving = False
+                            return
                     # DEBUG print('edit')
                     # DEBUG pprint(edit)
 
