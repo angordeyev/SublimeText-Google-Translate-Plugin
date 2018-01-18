@@ -26,8 +26,8 @@ class GoogleTranslateException(Exception):
 class GoogleTranslate(object):
     string_pattern = r"\"(([^\"\\]|\\.)*)\""
     match_string =re.compile(
-                        r"\,?\[" 
-                           + string_pattern + r"\," 
+                        r"\,?\["
+                           + string_pattern + r"\,"
                            + string_pattern
                         +r"\]")
 
@@ -63,7 +63,7 @@ class GoogleTranslate(object):
     def translate(self, text, format='html'):
         data = self._get_translation_from_google(text)
         #if (format == 'plain')
-            #data = 
+            #data =
         return data
 
     def _get_translation_from_google(self, text):
@@ -134,7 +134,7 @@ class SocksiPyConnectionS(http.client.HTTPSConnection):
             sock.settimeout(self.timeout)
         sock.connect((self.host, self.port))
         self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file)
-            
+
 class SocksiPyHandler(HTTPHandler, HTTPSHandler):
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -142,17 +142,17 @@ class SocksiPyHandler(HTTPHandler, HTTPSHandler):
         HTTPHandler.__init__(self)
 
     def http_open(self, req):
-        def build(host, port=None, strict=None, timeout=0):    
+        def build(host, port=None, strict=None, timeout=0):
             conn = SocksiPyConnection(*self.args, host=host, port=port, strict=strict, timeout=timeout, **self.kw)
             return conn
         return self.do_open(build, req)
 
     def https_open(self, req):
-        def build(host, port=None, strict=None, timeout=0):    
+        def build(host, port=None, strict=None, timeout=0):
             conn = SocksiPyConnectionS(*self.args, host=host, port=port, strict=strict, timeout=timeout, **self.kw)
             return conn
         return self.do_open(build, req)
-        
+
 if __name__ == "__main__":
     translate = GoogleTranslate('en', 'zh-CN')
     result = translate.translate('Hello, Beijing', 'html')
